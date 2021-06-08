@@ -533,25 +533,24 @@ class DirichletMultinomialRV(RandomVariable):
 
     @classmethod
     def rng_fn(cls, rng, n, a, size):
-        # numpy will cast dirichlet and multinomial samples to float64 by default
-        original_dtype = a.dtype
 
-        # Thanks to the default shape handling done in generate_values, the last
-        # axis of n is a dummy axis that allows it to broadcast well with `a`
-        n = np.broadcast_to(n, size)
-        a = np.broadcast_to(a, size)
-        n = n[..., 0]
+        if n.ndim > 0 or a.ndim > 1:
+            n, a = broadcast_params([n, a], cls.ndims_params)
+            size = tuple(size or ())
 
-        # np.random.multinomial needs `n` to be a scalar int and `a` a
-        # sequence, so we semi-flatten them and iterate over them
-        n_ = n.reshape([-1])
-        a_ = a.reshape([-1, a.shape[-1]])
-        p_ = np.array([rng.dirichlet(aa) for aa in a_])
-        samples = np.array([rng.multinomial(nn, pp) for nn, pp in zip(n_, p_)])
-        samples = samples.reshape(a.shape)
+            if size:
+                n = np.broadcast_to(n, size + n.shape)
+                a = np.broadcast_to(a, size + a.shape)
 
-        # We cast back to the original dtype
-        return samples.astype(original_dtype)
+            res = np.empty(a.shape)
+            for idx in np.ndindex(a.shape[:-1]):
+                p = rng.dirichlet(a[idx])
+                res[idx] = rng.multinomial(n[idx], p)
+            return res
+        else:
+            # n is a scalar, a is a 1d array
+            p = rng.dirichlet(a)
+            return rng.multinomial(n, p, size=size)
 
 
 dirichlet_multinomial = DirichletMultinomialRV()
@@ -593,19 +592,9 @@ class DirichletMultinomial(Discrete):
     rv_op = dirichlet_multinomial
 
     @classmethod
-    def dist(cls, n, a, shape, *args, **kwargs):
+    def dist(cls, n, a, *args, **kwargs):
         n = intX(n)
         a = floatX(a)
-
-        if len(shape) > 1:
-            n = at.shape_padright(n)
-            a = at.as_tensor_variable(a) if a.ndim > 1 else at.shape_padleft(a)
-        else:
-            # n is a scalar, p is a 1d array
-            n = at.as_tensor_variable(n)
-            a = at.as_tensor_variable(a)
-
-        p = a / a.sum(-1, keepdims=True)
 
         return super().dist([n, a], **kwargs)
 
