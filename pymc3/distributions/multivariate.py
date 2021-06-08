@@ -384,7 +384,6 @@ class Dirichlet(Continuous):
     a: array
         Concentration parameters (a > 0).
     """
-
     rv_op = dirichlet
 
     def __new__(cls, name, *args, **kwargs):
@@ -492,11 +491,6 @@ class Multinomial(Discrete):
         n = at.as_tensor_variable(n)
         p = at.as_tensor_variable(p)
 
-        # mean = n * p
-        # mode = at.cast(at.round(mean), "int32")
-        # diff = n - at.sum(mode, axis=-1, keepdims=True)
-        # inc_bool_arr = at.abs_(diff) > 0
-        # mode = at.inc_subtensor(mode[inc_bool_arr.nonzero()], diff[inc_bool_arr.nonzero()])
         return super().dist([n, p], *args, **kwargs)
 
     def logp(value, n, p):
@@ -506,7 +500,7 @@ class Multinomial(Discrete):
 
         Parameters
         ----------
-        x: numeric
+        value: numeric
             Value for which log-probability is calculated.
 
         Returns
