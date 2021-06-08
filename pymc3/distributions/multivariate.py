@@ -607,7 +607,7 @@ class DirichletMultinomial(Discrete):
 
         p = a / a.sum(-1, keepdims=True)
 
-        return super().dist([n, a, p, shape], **kwargs)
+        return super().dist([n, a], **kwargs)
 
     def logp(value, n, a):
         """
