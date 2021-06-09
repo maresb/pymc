@@ -635,29 +635,6 @@ class DirichletMultinomial(Discrete):
         return ["n", "a"]
 
 
-class OrderedMultinomial(Multinomial):
-    rv_op = multinomial
-
-    @classmethod
-    def dist(cls, eta, cutpoints, n, *args, **kwargs):
-        eta = at.as_tensor_variable(floatX(eta))
-        cutpoints = at.as_tensor_variable(cutpoints)
-        n = at.as_tensor_variable(n)
-
-        pa = sigmoid(cutpoints - at.shape_padright(eta))
-        p_cum = at.concatenate(
-            [
-                at.zeros_like(at.shape_padright(pa[..., 0])),
-                pa,
-                at.ones_like(at.shape_padright(pa[..., 0])),
-            ],
-            axis=-1,
-        )
-        p = p_cum[..., 1:] - p_cum[..., :-1]
-
-        return super().dist([n, p], *args, **kwargs)
-
-
 def posdef(AA):
     try:
         linalg.cholesky(AA)
