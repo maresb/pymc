@@ -2258,10 +2258,10 @@ class TestMatchesScipy:
     def test_dirichlet_multinomial_matches_beta_binomial(self):
         a, b, n = 2, 1, 5
         ns = np.arange(n + 1)
-        ns_dm = np.vstack((ns, n - ns)).T  # covert ns=1 to ns_dm=[1, 4], for all ns...
-        bb_logp = logpt(pm.BetaBinomial.dist(n=n, alpha=a, beta=b), ns).tag.test_value
+        ns_dm = np.vstack((ns, n - ns)).T  # convert ns=1 to ns_dm=[1, 4], for all ns...
+        bb_logp = logpt(pm.BetaBinomial.dist(n=n, alpha=a, beta=b, size=2), ns).tag.test_value
         dm_logp = logpt(
-            pm.DirichletMultinomial.dist(n=n, a=[a, b], size=(1, 2)), ns_dm
+            pm.DirichletMultinomial.dist(n=n, a=[a, b], size=2), ns_dm
         ).tag.test_value
         dm_logp = dm_logp.ravel()
         assert_almost_equal(
@@ -2276,10 +2276,10 @@ class TestMatchesScipy:
         n = 10
 
         with Model() as model_single:
-            DirichletMultinomial("m", n=n, a=a, size=len(a))
+            DirichletMultinomial("m", n=n, a=a)
 
         with Model() as model_many:
-            DirichletMultinomial("m", n=n, a=a, size=vals.shape)
+            DirichletMultinomial("m", n=n, a=a, size=2)
 
         assert_almost_equal(
             np.asarray([dirichlet_multinomial_logpmf(v, n, a) for v in vals]),
@@ -2289,7 +2289,7 @@ class TestMatchesScipy:
 
         assert_almost_equal(
             np.asarray([dirichlet_multinomial_logpmf(v, n, a) for v in vals]),
-            model_many.free_RVs[0].logp_elemwise({"m": vals}).squeeze(),
+            logpt(model_many.m, vals).eval().squeeze(),
             decimal=4,
         )
 
@@ -2305,7 +2305,7 @@ class TestMatchesScipy:
         ns = np.array([10, 11])
 
         with Model() as model:
-            DirichletMultinomial("m", n=ns, a=a, size=vals.shape)
+            DirichletMultinomial("m", n=ns, a=a)
 
         assert_almost_equal(
             sum([dirichlet_multinomial_logpmf(val, n, a) for val, n in zip(vals, ns)]),
@@ -2319,7 +2319,7 @@ class TestMatchesScipy:
         ns = np.array([10, 11])
 
         with Model() as model:
-            DirichletMultinomial("m", n=ns, a=as_, size=vals.shape)
+            DirichletMultinomial("m", n=ns, a=as_)
 
         assert_almost_equal(
             sum([dirichlet_multinomial_logpmf(val, n, a) for val, n, a in zip(vals, ns, as_)]),
@@ -2333,7 +2333,7 @@ class TestMatchesScipy:
         n = 10
 
         with Model() as model:
-            DirichletMultinomial("m", n=n, a=as_, size=vals.shape)
+            DirichletMultinomial("m", n=n, a=as_)
 
         assert_almost_equal(
             sum([dirichlet_multinomial_logpmf(val, n, a) for val, a in zip(vals, as_)]),
@@ -2345,7 +2345,7 @@ class TestMatchesScipy:
     def test_batch_dirichlet_multinomial(self):
         # Test that DM can handle a 3d array for `a`
 
-        # Create an almost deterministic DM by setting a to 0.001, everywehere
+        # Create an almost deterministic DM by setting a to 0.001, everywhere
         # except for one category / dimension which is given the value of 1000
         n = 5
         vals = np.zeros((4, 5, 3), dtype="int32")
@@ -2354,11 +2354,11 @@ class TestMatchesScipy:
         np.put_along_axis(vals, inds, n, axis=-1)
         np.put_along_axis(a, inds, 1000, axis=-1)
 
-        dist = DirichletMultinomial.dist(n=n, a=a, size=vals.shape)
+        dist = DirichletMultinomial.dist(n=n, a=a)
 
         # Logp should be approx -9.924431e-06
         dist_logp = logpt(dist, vals).tag.test_value
-        expected_logp = np.full(shape=vals.shape[:-1] + (1,), fill_value=-9.924431e-06)
+        expected_logp = np.full(shape=vals.shape[:-1], fill_value=-9.924431e-06)
         assert_almost_equal(
             dist_logp,
             expected_logp,
@@ -2366,7 +2366,8 @@ class TestMatchesScipy:
         )
 
         # Samples should be equal given the almost deterministic DM
-        sample = dist.random(size=2)
+        dist = DirichletMultinomial.dist(n=n, a=a, size=2)
+        sample = dist.eval()
         assert_allclose(sample, np.stack([vals, vals], axis=0))
 
     @aesara.config.change_flags(compute_test_value="raise")
