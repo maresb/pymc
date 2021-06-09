@@ -26,6 +26,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor.nlinalg import det, eigh, matrix_inverse, trace
 from aesara.tensor.random.basic import MultinomialRV, dirichlet, multivariate_normal, RandomVariable
+from aesara.tensor.random.op import default_shape_from_params
 from aesara.tensor.random.utils import broadcast_params
 from aesara.tensor.slinalg import (
     Cholesky,
@@ -44,7 +45,7 @@ from pymc3.distributions.continuous import ChiSquared, Normal
 from pymc3.distributions.dist_math import bound, factln, logpow
 from pymc3.distributions.distribution import Continuous, Discrete
 from pymc3.distributions.special import gammaln, multigammaln
-from pymc3.math import kron_diag, kron_dot, kron_solve_lower, kronecker
+from pymc3.math import kron_diag, kron_dot, kron_solve_lower, kronecker, sigmoid
 
 __all__ = [
     "MvNormal",
@@ -525,6 +526,11 @@ class DirichletMultinomialRV(RandomVariable):
     dtype = "int64"
     _print_name = ("DirichletMN", "\\operatorname{DirichletMN}")
 
+    def _shape_from_params(self, dist_params, rep_param_idx=1, param_shapes=None):
+        return default_shape_from_params(
+            self.ndim_supp, dist_params, rep_param_idx, param_shapes
+        )
+
     @classmethod
     def rng_fn(cls, rng, n, a, size):
 
@@ -543,8 +549,13 @@ class DirichletMultinomialRV(RandomVariable):
             return res
         else:
             # n is a scalar, a is a 1d array
-            p = rng.dirichlet(a)
-            return rng.multinomial(n, p, size=size)
+            p = rng.dirichlet(a, size=size)  # (size, a.shape)
+
+            res = np.empty(p.shape)
+            for idx in np.ndindex(p.shape[:-1]):
+                res[idx] = rng.multinomial(n, p[idx])
+
+            return res
 
 
 dirichlet_multinomial = DirichletMultinomialRV()
@@ -607,7 +618,6 @@ class DirichletMultinomial(Discrete):
         TensorVariable
         """
         sum_a = a.sum(axis=-1, keepdims=True)
-
         const = (gammaln(n + 1) + gammaln(sum_a)) - gammaln(n + sum_a)
         series = gammaln(value + a) - (gammaln(value + 1) + gammaln(a))
         result = const + series.sum(axis=-1, keepdims=True)
