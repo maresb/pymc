@@ -2246,6 +2246,7 @@ class TestMatchesScipy:
         sample = dist.eval()
         assert_allclose(sample, np.stack([vals, vals], axis=0))
 
+# https://github.com/pymc-devs/pymc3/pull/4508/files
     @pytest.mark.parametrize("n", [2, 3])
     def test_dirichlet_multinomial(self, n):
         self.check_logp(
@@ -2259,11 +2260,11 @@ class TestMatchesScipy:
         a, b, n = 2, 1, 5
         ns = np.arange(n + 1)
         ns_dm = np.vstack((ns, n - ns)).T  # convert ns=1 to ns_dm=[1, 4], for all ns...
-        bb_logp = logpt(pm.BetaBinomial.dist(n=n, alpha=a, beta=b, size=2), ns).tag.test_value
+        bb_logp = logpt(var=pm.BetaBinomial.dist(n=n, alpha=a, beta=b, size=2), rv_values=ns).eval()
         dm_logp = logpt(
-            pm.DirichletMultinomial.dist(n=n, a=[a, b], size=2), ns_dm
-        ).tag.test_value
-        dm_logp = dm_logp.ravel()
+            var=pm.DirichletMultinomial.dist(n=n, a=[a, b], size=2),
+            rv_values=ns_dm,
+        ).eval().ravel()
         assert_almost_equal(
             dm_logp,
             bb_logp,
