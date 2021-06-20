@@ -14,7 +14,7 @@ implemented as ``pm.distributions.transforms.``\*X*.
 ..
    .. autosummary::
 
-   transform
+   Transform
    stick_breaking
    logodds
    interval
@@ -60,16 +60,6 @@ below.
     :class:`~pymc3.distributions.transforms.LogExpM1` :class:`~pymc3.distributions.transforms.Transform` class
     for use in the ``transform`` argument of a random variable.
 
-``lowerbound``
-    Alias of
-    :class:`~pymc3.distributions.transforms.LowerBound` :class:`~pymc3.distributions.transforms.Transform` class
-    for use in the ``transform`` argument of a random variable.
-
-``upperbound``
-    Alias of
-    :class:`~pymc3.distributions.transforms.UpperBound` :class:`~pymc3.distributions.transforms.Transform` class
-    for use in the ``transform`` argument of a random variable.
-
 ``ordered``
     Instantiation of
     :class:`~pymc3.distributions.transforms.Ordered` :class:`~pymc3.distributions.transforms.Transform` class
@@ -99,10 +89,6 @@ Typically the programmer will not use these directly.
 
 .. autoclass::  Transform
     :members:
-.. autoclass::  transform
-    :members:
-.. autoclass::  TransformedDistribution
-    :members:
 
 
 Transform Composition Classes
@@ -124,10 +110,6 @@ Specific Transform Classes
 .. autoclass::  LogOdds
     :members:
 .. autoclass::  Interval
-    :members:
-.. autoclass::  LowerBound
-    :members:
-.. autoclass::  UpperBound
     :members:
 .. autoclass::  Ordered
     :members:

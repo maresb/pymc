@@ -158,7 +158,6 @@ explicit about the conversion. For example:
     with pm.Model() as model:
         z = pm.Normal('z', mu=0., sigma=5.)             # ==> aesara.tensor.var.TensorVariable
         x = pm.Normal('x', mu=z, sigma=1., observed=5.) # ==> aesara.tensor.var.TensorVariable
-    x.logp({'z': 2.5})                                  # ==> -4.0439386
     model.logp({'z': 2.5})                              # ==> -6.6973152
 
 **TFP**
