@@ -124,6 +124,7 @@ from pymc.logprob.utils import (
     filter_measurable_variables,
     find_negated_var,
 )
+from pymc.math import logdiffexp
 
 
 class Transform(abc.ABC):
@@ -250,7 +251,8 @@ def measurable_transform_logcdf(op: MeasurableTransform, value, *inputs, **kwarg
     logcdf = _logcdf_helper(measurable_input, backward_value)
     if is_discrete:
         # For discrete distributions, use the logcdf at the previous value
-        logccdf = pt.log1mexp(_logcdf_helper(measurable_input, backward_value - 1))
+        # Use numerically stable logccdf (falls back to log1mexp if not available)
+        logccdf = _logccdf_helper(measurable_input, backward_value - 1)
     else:
         # Use numerically stable logccdf (falls back to log1mexp if not available)
         logccdf = _logccdf_helper(measurable_input, backward_value)
@@ -270,7 +272,14 @@ def measurable_transform_logcdf(op: MeasurableTransform, value, *inputs, **kwarg
             logcdf_zero = _logcdf_helper(measurable_input, 0)
             logcdf = pt.switch(
                 pt.lt(backward_value, 0),
-                pt.log(pt.exp(logcdf_zero) - pt.exp(logcdf)),
+                # When base CDF(0) == base CDF(backward_value) (e.g. both are 0),
+                # the difference is 0 and the log should be -inf. `logdiffexp`
+                # would otherwise return nan due to an indeterminate (-inf) - (-inf).
+                pt.switch(
+                    pt.eq(logcdf_zero, logcdf),
+                    -np.inf,
+                    logdiffexp(logcdf_zero, logcdf),
+                ),
                 pt.logaddexp(logccdf, logcdf_zero),
             )
     else:
